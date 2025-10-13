@@ -3,11 +3,12 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const Expense = require('./models/Expense'); // Import Expense model
 
 // Load environment variables
 dotenv.config();
 
-// Create an Express app
+// Create Express app
 const app = express();
 
 // Middleware
@@ -17,47 +18,68 @@ app.use(express.json());
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI;
 
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
+mongoose
+  .connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// Create a simple Mongoose schema/model for testing
-const testSchema = new mongoose.Schema({
-  message: String,
-});
+// --- ROUTES ---
 
-const Test = mongoose.model('Test', testSchema);
-
-// Default route
+// Test route
 app.get('/', (req, res) => {
   res.send('🚀 CoinKeeper backend is running successfully!');
 });
 
-// GET route — Fetch all test messages
-app.get('/test', async (req, res) => {
+// GET all expenses
+app.get('/api/expenses', async (req, res) => {
   try {
-    const tests = await Test.find();
-    res.json({ success: true, count: tests.length, data: tests });
+    const expenses = await Expense.find().sort({ date: -1 });
+    res.json({ success: true, count: expenses.length, data: expenses });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// POST route — Add a test message
-app.post('/test', async (req, res) => {
+// POST create new expense
+app.post('/api/expenses', async (req, res) => {
   try {
-    const test = await Test.create({ message: 'Hello MongoDB from CoinKeeper!' });
-    res.json({ success: true, data: test });
+    const expense = await Expense.create(req.body);
+    res.status(201).json({ success: true, data: expense });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
-// Start the server
+// PUT update expense
+app.put('/api/expenses/:id', async (req, res) => {
+  try {
+    const expense = await Expense.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!expense)
+      return res.status(404).json({ success: false, message: 'Expense not found' });
+    res.json({ success: true, data: expense });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE expense
+app.delete('/api/expenses/:id', async (req, res) => {
+  try {
+    const expense = await Expense.findByIdAndDelete(req.params.id);
+    if (!expense)
+      return res.status(404).json({ success: false, message: 'Expense not found' });
+    res.json({ success: true, message: 'Expense deleted' });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
