@@ -1,34 +1,40 @@
-const mongoose = require('mongoose');
+// backend/models/Expense.js
 
-const expenseSchema = new mongoose.Schema(
+const mongoose = require("mongoose");
+
+const ExpenseSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     title: {
       type: String,
-      required: [true, 'Title is required'],
+      required: [true, "Expense title is required"],
+      trim: true,
+    },
+    category: {
+      type: String,
+      required: [true, "Expense category is required"],
       trim: true,
     },
     amount: {
       type: Number,
-      required: [true, 'Amount is required'],
-      min: [0, 'Amount must be positive'],
-    },
-    category: {
-      type: String,
-      enum: ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Other'],
-      default: 'Other',
+      required: [true, "Expense amount is required"],
+      min: [0, "Amount cannot be negative"],
     },
     date: {
       type: Date,
-      default: Date.now,
+      required: true,
     },
-    description: {
-      type: String,
-      trim: true,
+    budget: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Budget",
+      default: null,
     },
   },
-  { timestamps: true } // Adds createdAt & updatedAt automatically
+  { timestamps: true }
 );
 
-const Expense = mongoose.model('Expense', expenseSchema);
-
-module.exports = Expense;
+module.exports = mongoose.model("Expense", ExpenseSchema);
