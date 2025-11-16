@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: coinkeeper
+  labels:
+    app: analytics-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+    spec:
+      containers:
+        - name: analytics-service
+          image: coinkeeper-analytics:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5004
+          env:
+            - name: PORT
+              value: "5004"
+            - name: MONGO_URI
+              value: "mongodb://coinkeeper:supersecretpassword@mongo:27017/coinkeeper?authSource=admin"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+  namespace: coinkeeper
+  labels:
+    app: analytics-service
+spec:
+  selector:
+    app: analytics-service
+  ports:
+    - name: http
+      port: 5004
+      targetPort: 5004
+  type: ClusterIP
