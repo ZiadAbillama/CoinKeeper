@@ -3,21 +3,54 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const client = require("prom-client");
 
 dotenv.config();
 
 const app = express();
-
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Import routes (copied from backend)
+// ===== Prometheus metrics setup =====
+const collectDefaultMetrics = client.collectDefaultMetrics;
+
+// Collect default Node.js + process metrics
+collectDefaultMetrics();
+
+// Optional: custom counter for HTTP requests
+const httpRequestCounter = new client.Counter({
+  name: "http_requests_total",
+  help: "Total number of HTTP requests",
+  labelNames: ["method", "route", "status"]
+});
+
+// Small middleware to bump the counter on each response
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  res.on("finish", () => {
+    httpRequestCounter.labels(req.method, req.path, res.statusCode).inc();
+  });
+
+  next();
+});
+
+// Expose /metrics for Prometheus scraping
+app.get("/metrics", async (req, res) => {
+  try {
+    res.set("Content-Type", client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (err) {
+    console.error("Error generating metrics:", err);
+    res.status(500).send("Error generating metrics");
+  }
+});
+
+// ===== Existing routes =====
 const expensesRoutes = require("./routes/expenses");
 const budgetsRoutes = require("./routes/budgets");
 const analyticsRoutes = require("./routes/analytics");
 
-// Mount routes
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/budgets", budgetsRoutes);
 app.use("/api/analytics", analyticsRoutes);
@@ -27,11 +60,11 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "expense-service" });
 });
 
-// Port & DB connection string
+// ===== MongoDB connection =====
 const PORT = process.env.PORT || 5003;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/coinkeeper";
+const MONGO_URI =
+  process.env.MONGO_URI || "mongodb://localhost:27017/coinkeeper";
 
-// Connect to MongoDB, then start server
 mongoose
   .connect(MONGO_URI)
   .then(() => {

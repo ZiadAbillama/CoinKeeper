@@ -17,15 +17,14 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: coinkeeper-auth:v1
-          imagePullPolicy: IfNotPresent
+          image: coinkeeper-auth:v2
           ports:
             - containerPort: 5002
           env:
             - name: PORT
               value: "5002"
-            - name: JWT_SECRET
-              value: "super-secret-change-this"   # later we'll move this to a Secret
+            - name: MONGO_URI
+              value: "mongodb://mongo:27017/coinkeeper-auth"
 ---
 apiVersion: v1
 kind: Service

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: expense-service
-          image: coinkeeper-expense:v1
+          image: coinkeeper-expense:v2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
