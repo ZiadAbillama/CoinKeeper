@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "analytics-service",
   "version": "1.0.0",
   "description": "Backend API for the CoinKeeper expense tracking app",
   "main": "index.js",

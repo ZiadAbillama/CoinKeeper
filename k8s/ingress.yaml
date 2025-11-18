@@ -9,16 +9,13 @@ spec:
     - host: coinkeeper.local
       http:
         paths:
-          # Frontend React app
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: coinkeeper-frontend
+                name: frontend
                 port:
                   number: 80
-
-          # Auth service
           - path: /api/auth
             pathType: Prefix
             backend:
@@ -26,28 +23,24 @@ spec:
                 name: auth-service
                 port:
                   number: 5002
-
-          # Expenses + budgets
           - path: /api/expenses
             pathType: Prefix
             backend:
               service:
-                name: expense-service
+                name: expenses-service
                 port:
                   number: 5003
           - path: /api/budgets
             pathType: Prefix
             backend:
               service:
-                name: expense-service
+                name: budgets-service
                 port:
-                  number: 5003
-
-          # Analytics
+                  number: 5004
           - path: /api/analytics
             pathType: Prefix
             backend:
               service:
                 name: analytics-service
                 port:
-                  number: 5004
+                  number: 5005

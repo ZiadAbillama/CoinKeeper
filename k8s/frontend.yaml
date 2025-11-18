@@ -1,23 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: coinkeeper-frontend
+  name: frontend
   namespace: coinkeeper
-  labels:
-    app: coinkeeper-frontend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: coinkeeper-frontend
+      app: frontend
   template:
     metadata:
       labels:
-        app: coinkeeper-frontend
+        app: frontend
     spec:
       containers:
         - name: frontend
-          image: coinkeeper-frontend:v2
+          image: coinkeeper-frontend
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
@@ -25,15 +23,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: coinkeeper-frontend
+  name: frontend
   namespace: coinkeeper
-  labels:
-    app: coinkeeper-frontend
 spec:
   selector:
-    app: coinkeeper-frontend
+    app: frontend
   ports:
-    - name: http
-      port: 80
+    - port: 80
       targetPort: 80
-  type: NodePort
+      protocol: TCP
+  type: ClusterIP

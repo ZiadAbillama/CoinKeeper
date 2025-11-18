@@ -1,44 +1,41 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: expense-service
+  name: expenses-service
   namespace: coinkeeper
-  labels:
-    app: expense-service
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: expense-service
+      app: expenses-service
   template:
     metadata:
       labels:
-        app: expense-service
+        app: expenses-service
     spec:
       containers:
-        - name: expense-service
-          image: coinkeeper-expense:v2
+        - name: expenses-service
+          image: coinkeeper-expenses-service
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
           env:
             - name: PORT
               value: "5003"
-            - name: MONGO_URI
-              value: "mongodb://coinkeeper:supersecretpassword@mongo:27017/coinkeeper?authSource=admin"
+          envFrom:
+            - secretRef:
+                name: coinkeeper-backend-secrets
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: expense-service
+  name: expenses-service
   namespace: coinkeeper
-  labels:
-    app: expense-service
 spec:
   selector:
-    app: expense-service
+    app: expenses-service
   ports:
-    - name: http
-      port: 5003
+    - port: 5003
       targetPort: 5003
+      protocol: TCP
   type: ClusterIP

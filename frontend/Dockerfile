@@ -1,31 +1,23 @@
-# ---- Build stage ----
+# frontend/Dockerfile
+
+# 1) Build stage
 FROM node:22-alpine AS build
 
-# 1) Set working directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# 2) Copy package.json + package-lock.json
 COPY package*.json ./
+RUN npm install
 
-# 3) Install dependencies
-RUN npm ci
-
-# 4) Copy the rest of the frontend code
 COPY . .
-
-# 5) Build the production bundle
-# CI=false avoids CRA treating warnings as errors inside Docker
-ENV CI=false
 RUN npm run build
 
-# ---- Run stage (Nginx) ----
-FROM nginx:stable-alpine
+# 2) Nginx stage
+FROM nginx:alpine
 
-# 6) Copy build output from previous stage
-COPY --from=build /usr/src/app/build /usr/share/nginx/html
+# Copy build output to Nginx html directory
+COPY --from=build /app/build /usr/share/nginx/html
 
-# 7) Expose HTTP port
+# Optional: override default nginx config later if needed
 EXPOSE 80
 
-# 8) Start Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]
