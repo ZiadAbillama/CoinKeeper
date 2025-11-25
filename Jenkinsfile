@@ -38,7 +38,6 @@ pipeline {
             steps {
                 echo "✓ Building frontend application"
                 dir('frontend') {
-                    // If npm or build fails (e.g. network), mark UNSTABLE but don't fail whole pipeline
                     catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                         sh '''
                             npm ci
@@ -132,34 +131,51 @@ pipeline {
         }
 
         /* --------------------
-           TEMPORARILY DISABLED STAGES
+           ENABLED NOW: BUILD DOCKER IMAGES
            -------------------- */
 
         stage('Build Docker Images') {
-            when { expression { false } }
             steps {
-                echo "⏭ Skipping Docker image build (disabled for setup)"
+                echo "✓ Building Docker images"
+                sh '''
+                    BUILD_TAG=build-$BUILD_NUMBER
+
+                    echo "Using image tag: $BUILD_TAG"
+
+                    # Frontend image
+                    docker build -t coinkeeper-frontend:$BUILD_TAG ./frontend
+
+                    # Service images
+                    docker build -t coinkeeper-auth-service:$BUILD_TAG ./services/auth-service
+                    docker build -t coinkeeper-expenses-service:$BUILD_TAG ./services/expenses-service
+                    docker build -t coinkeeper-budgets-service:$BUILD_TAG ./services/budgets-service
+                    docker build -t coinkeeper-analytics-service:$BUILD_TAG ./services/analytics-service
+                '''
             }
         }
+
+        /* --------------------
+           STILL DISABLED FOR THIS STEP
+           -------------------- */
 
         stage('Push Docker Images') {
             when { expression { false } }
             steps {
-                echo "⏭ Skipping Docker image push (disabled for setup)"
+                echo "⏭ Skipping Docker image push (disabled for this step)"
             }
         }
 
         stage('Deploy to Kubernetes') {
             when { expression { false } }
             steps {
-                echo "⏭ Skipping Kubernetes deployment (disabled for setup)"
+                echo "⏭ Skipping Kubernetes deployment (disabled for this step)"
             }
         }
 
         stage('Smoke Tests') {
             when { expression { false } }
             steps {
-                echo "⏭ Skipping smoke tests (disabled for setup)"
+                echo "⏭ Skipping smoke tests (disabled for this step)"
             }
         }
     }
