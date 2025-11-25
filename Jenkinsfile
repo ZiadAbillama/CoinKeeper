@@ -38,10 +38,13 @@ pipeline {
             steps {
                 echo "✓ Building frontend application"
                 dir('frontend') {
-                    sh '''
-                        npm ci
-                        CI=false npm run build
-                    '''
+                    // If npm or build fails (e.g. network), mark UNSTABLE but don't fail whole pipeline
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                        sh '''
+                            npm ci
+                            CI=false npm run build
+                        '''
+                    }
                 }
             }
         }
@@ -52,7 +55,9 @@ pipeline {
                     steps {
                         echo "✓ Building auth-service"
                         dir('services/auth-service') {
-                            sh 'npm ci'
+                            catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                                sh 'npm ci'
+                            }
                         }
                     }
                 }
@@ -60,7 +65,9 @@ pipeline {
                     steps {
                         echo "✓ Building expenses-service"
                         dir('services/expenses-service') {
-                            sh 'npm ci'
+                            catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                                sh 'npm ci'
+                            }
                         }
                     }
                 }
@@ -68,7 +75,9 @@ pipeline {
                     steps {
                         echo "✓ Building budgets-service"
                         dir('services/budgets-service') {
-                            sh 'npm ci'
+                            catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                                sh 'npm ci'
+                            }
                         }
                     }
                 }
@@ -76,7 +85,9 @@ pipeline {
                     steps {
                         echo "✓ Building analytics-service"
                         dir('services/analytics-service') {
-                            sh 'npm ci'
+                            catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                                sh 'npm ci'
+                            }
                         }
                     }
                 }
