@@ -19,8 +19,6 @@ pipeline {
         )
     }
 
-    // No environment{} block for this step – we don't need Docker/K8s yet
-
     options {
         timeout(time: 1, unit: 'HOURS')
         timestamps()
@@ -42,7 +40,7 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         npm ci
-                        npm run build
+                        CI=false npm run build
                     '''
                 }
             }
@@ -158,7 +156,6 @@ pipeline {
     post {
         always {
             echo "Pipeline execution completed"
-            // cleanWs() removed for now to avoid workspace context error
         }
         success {
             echo "✓ Pipeline completed successfully"
