@@ -54,7 +54,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-emerald-400">
-          Welcome to CoinKeeper
+          Welcome to CoinKeeper!
         </h1>
         <p className="text-gray-400 mt-1">
           Your personal finance tracker – all in one place 💰
