@@ -19,16 +19,7 @@ pipeline {
         )
     }
 
-    environment {
-        DOCKER_REGISTRY = credentials('docker-registry-url')
-        DOCKER_USERNAME = credentials('docker-username')
-        DOCKER_PASSWORD = credentials('docker-password')
-        KUBECONFIG = credentials('kubeconfig')
-        GIT_COMMIT_SHORT = sh(
-            script: "git rev-parse --short HEAD",
-            returnStdout: true
-        ).trim()
-    }
+    // No environment{} block for this step – we don't need Docker/K8s yet
 
     options {
         timeout(time: 1, unit: 'HOURS')
@@ -109,13 +100,13 @@ pipeline {
                         cd ../services/auth-service && npm test || true
                         
                         echo "Expenses Service tests..."
-                        cd ../expenses-service && npm test || true
+                        cd ../services/expenses-service && npm test || true
                         
                         echo "Budgets Service tests..."
-                        cd ../budgets-service && npm test || true
+                        cd ../services/budgets-service && npm test || true
                         
                         echo "Analytics Service tests..."
-                        cd ../analytics-service && npm test || true
+                        cd ../services/analytics-service && npm test || true
                     '''
                 }
             }
@@ -126,7 +117,7 @@ pipeline {
                 expression { return env.ENVIRONMENT != 'production' }
             }
             steps {
-                echo "✓ Running SonarQube analysis (disabled placeholder)"
+                echo "✓ Running SonarQube analysis (placeholder)"
                 sh 'echo "Skipping SonarQube for now"'
             }
         }
@@ -167,7 +158,7 @@ pipeline {
     post {
         always {
             echo "Pipeline execution completed"
-            cleanWs()
+            // cleanWs() removed for now to avoid workspace context error
         }
         success {
             echo "✓ Pipeline completed successfully"
