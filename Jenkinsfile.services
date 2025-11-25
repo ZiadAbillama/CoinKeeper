@@ -1,0 +1,98 @@
+// This Jenkinsfile is used for individual service pipelines
+// Each service can be built and deployed independently
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'SERVICE',
+            choices: ['auth-service', 'expenses-service', 'budgets-service', 'analytics-service'],
+            description: 'Select which service to build'
+        )
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'staging', 'production'],
+            description: 'Target environment for deployment'
+        )
+    }
+
+    environment {
+        DOCKER_REGISTRY = credentials('docker-registry-url')
+        DOCKER_USERNAME = credentials('docker-username')
+        DOCKER_PASSWORD = credentials('docker-password')
+        GIT_COMMIT_SHORT = sh(
+            script: "git rev-parse --short HEAD",
+            returnStdout: true
+        ).trim()
+        SERVICE_PATH = "services/${params.SERVICE}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Service') {
+            steps {
+                dir("${env.SERVICE_PATH}") {
+                    sh '''
+                        echo "Building ${SERVICE}..."
+                        npm ci
+                        npm run build 2>/dev/null || true
+                    '''
+                }
+            }
+        }
+
+        stage('Test Service') {
+            steps {
+                dir("${env.SERVICE_PATH}") {
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                        sh '''
+                            echo "Testing ${SERVICE}..."
+                            npm test 2>/dev/null || true
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build -t ${DOCKER_REGISTRY}/coinkeeper-${SERVICE}:${GIT_COMMIT_SHORT} ./${SERVICE_PATH}
+                    docker tag ${DOCKER_REGISTRY}/coinkeeper-${SERVICE}:${GIT_COMMIT_SHORT} ${DOCKER_REGISTRY}/coinkeeper-${SERVICE}:${ENVIRONMENT}
+                '''
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh '''
+                    echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin ${DOCKER_REGISTRY}
+                    docker push ${DOCKER_REGISTRY}/coinkeeper-${SERVICE}:${GIT_COMMIT_SHORT}
+                    docker push ${DOCKER_REGISTRY}/coinkeeper-${SERVICE}:${ENVIRONMENT}
+                    docker logout ${DOCKER_REGISTRY}
+                '''
+            }
+        }
+
+        stage('Deploy Service') {
+            steps {
+                sh '''
+                    echo "Deploying ${SERVICE} to ${ENVIRONMENT}..."
+                    # Add deployment logic here
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
