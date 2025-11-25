@@ -2,21 +2,16 @@ pipeline {
     agent any
 
     parameters {
-        choice(
-            name: 'ENVIRONMENT',
-            choices: ['dev', 'staging', 'production'],
-            description: 'Target environment for deployment'
-        )
         booleanParam(
             name: 'RUN_TESTS',
             defaultValue: true,
             description: 'Run automated tests'
         )
-        booleanParam(
-            name: 'PUSH_IMAGES',
-            defaultValue: true,
-            description: 'Push Docker images to registry'
-        )
+    }
+
+    environment {
+        // Tag for images built in this run, e.g. build-8
+        BUILD_TAG = "build-${env.BUILD_NUMBER}"
     }
 
     options {
@@ -26,7 +21,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 echo "✓ Checking out code"
@@ -121,61 +115,69 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            when {
-                expression { return env.ENVIRONMENT != 'production' }
-            }
             steps {
                 echo "✓ Running SonarQube analysis (placeholder)"
                 sh 'echo "Skipping SonarQube for now"'
             }
         }
 
-        /* --------------------
-           ENABLED NOW: BUILD DOCKER IMAGES
-           -------------------- */
-
         stage('Build Docker Images') {
             steps {
-                echo "✓ Building Docker images"
-                sh '''
-                    BUILD_TAG=build-$BUILD_NUMBER
+                echo "✓ Building Docker images with tag: ${BUILD_TAG}"
+                sh """
+                    set -eux
 
-                    echo "Using image tag: $BUILD_TAG"
+                    echo "Using image tag: ${BUILD_TAG}"
 
-                    # Frontend image
-                    docker build -t coinkeeper-frontend:$BUILD_TAG ./frontend
+                    # Frontend
+                    docker build -t coinkeeper-frontend:${BUILD_TAG} ./frontend
 
-                    # Service images
-                    docker build -t coinkeeper-auth-service:$BUILD_TAG ./services/auth-service
-                    docker build -t coinkeeper-expenses-service:$BUILD_TAG ./services/expenses-service
-                    docker build -t coinkeeper-budgets-service:$BUILD_TAG ./services/budgets-service
-                    docker build -t coinkeeper-analytics-service:$BUILD_TAG ./services/analytics-service
-                '''
+                    # Services
+                    docker build -t coinkeeper-auth-service:${BUILD_TAG} ./services/auth-service
+                    docker build -t coinkeeper-expenses-service:${BUILD_TAG} ./services/expenses-service
+                    docker build -t coinkeeper-budgets-service:${BUILD_TAG} ./services/budgets-service
+                    docker build -t coinkeeper-analytics-service:${BUILD_TAG} ./services/analytics-service
+                """
             }
         }
 
-        /* --------------------
-           STILL DISABLED FOR THIS STEP
-           -------------------- */
-
-        stage('Push Docker Images') {
-            when { expression { false } }
-            steps {
-                echo "⏭ Skipping Docker image push (disabled for this step)"
+        stage('Deploy with Docker') {
+            when {
+                expression { return env.BRANCH_NAME == null || env.BRANCH_NAME == 'main' }
             }
-        }
-
-        stage('Deploy to Kubernetes') {
-            when { expression { false } }
             steps {
-                echo "⏭ Skipping Kubernetes deployment (disabled for this step)"
-            }
-        }
+                echo "✓ Deploying containers with images tagged: ${BUILD_TAG}"
+                sh """
+                    set -eux
 
-        stage('Smoke Tests') {
-            when { expression { false } }
-            steps {
-                echo "⏭ Skipping smoke tests (disabled for this step)"
+                    # Stop & remove existing containers if they exist
+                    docker rm -f coinkeeper-frontend || true
+                    docker rm -f coinkeeper-auth || true
+                    docker rm -f coinkeeper-expenses || true
+                    docker rm -f coinkeeper-budgets || true
+                    docker rm -f coinkeeper-analytics || true
+
+                    # Start fresh containers with new images
+                    docker run -d --name coinkeeper-auth \\
+                      -p 5001:5001 \\
+                      coinkeeper-auth-service:${BUILD_TAG}
+
+                    docker run -d --name coinkeeper-expenses \\
+                      -p 5002:5002 \\
+                      coinkeeper-expenses-service:${BUILD_TAG}
+
+                    docker run -d --name coinkeeper-budgets \\
+                      -p 5003:5003 \\
+                      coinkeeper-budgets-service:${BUILD_TAG}
+
+                    docker run -d --name coinkeeper-analytics \\
+                      -p 5004:5004 \\
+                      coinkeeper-analytics-service:${BUILD_TAG}
+
+                    docker run -d --name coinkeeper-frontend \\
+                      -p 3000:80 \\
+                      coinkeeper-frontend:${BUILD_TAG}
+                """
             }
         }
     }
