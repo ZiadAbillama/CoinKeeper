@@ -17,7 +17,9 @@ FROM nginx:alpine
 # Copy build output to Nginx html directory
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Optional: override default nginx config later if needed
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
